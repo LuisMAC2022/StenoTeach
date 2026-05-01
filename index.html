@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Steno Canvas Trainer</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --panel: #ffffff;
+      --panel-2: #f8fafc;
+      --text: #0f172a;
+      --muted: #475569;
+      --accent: #2563eb;
+      --ok: #15803d;
+      --warn: #b45309;
+      --bad: #b91c1c;
+      --key: #e2e8f0;
+      --key-stroke: #94a3b8;
+      --key-active: #2563eb;
+      --key-active-stroke: #93c5fd;
+      --border: rgba(15, 23, 42, 0.12);
+      --shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      transition: background-color 220ms ease;
+    }
+
+    body.state-correct {
+      background: #dcfce7;
+    }
+
+    body.state-wrong {
+      background: #fee2e2;
+    }
+
+    .wrap {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.6rem, 2vw, 2.3rem);
+      text-align: center;
+    }
+
+    p, li { line-height: 1.45; }
+    .muted { color: var(--muted); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(620px, 760px) minmax(360px, 440px);
+      justify-content: center;
+      align-items: start;
+      gap: 22px;
+      margin-top: 22px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      background: #f8fafc;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      display: block;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    button {
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      color: var(--text);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    button.primary {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #ffffff;
+    }
+
+    .status {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: 12px;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      min-height: 52px;
+    }
+
+    .ok { color: var(--ok); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+
+    .cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .mini {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 12px;
+    }
+
+    code, kbd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: rgba(148, 163, 184, 0.18);
+      border-radius: 6px;
+      padding: 0.12rem 0.36rem;
+    }
+
+    ul {
+      padding-left: 1.2rem;
+      margin-top: 0.4rem;
+    }
+
+    .history-list {
+      list-style: none;
+      padding: 0;
+      margin: 10px 0 0;
+      display: grid;
+      gap: 8px;
+    }
+
+    .history-item {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 8px 10px;
+      align-items: start;
+      padding: 10px;
+      border-radius: 12px;
+      background: #ffffff;
+      border: 1px solid rgba(15, 23, 42, 0.08);
+    }
+
+    .history-badge {
+      font-size: 0.78rem;
+      font-weight: 700;
+      border-radius: 999px;
+      padding: 4px 8px;
+      line-height: 1;
+    }
+
+    .history-badge.ok {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .history-badge.bad {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .history-main {
+      min-width: 0;
+    }
+
+    .history-main div {
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 1160px) {
+      .grid {
+        grid-template-columns: minmax(0, 760px);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .wrap { padding: 16px; }
+      .grid { grid-template-columns: 1fr; }
+      .cols { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Steno Canvas Trainer</h1>
+
+    <div class="grid">
+      <section class="card">
+        <label for="outline">Enter a steno outline</label>
+        <input id="outline" type="text" placeholder="Press Random Lesson" autocomplete="off" spellcheck="false" />
+        <canvas id="board" width="900" height="430" aria-label="Steno keyboard diagram" style="margin-top:14px"></canvas>
+      </section>
+
+      <aside class="card">
+
+        <div class="row">
+          <button class="primary" id="checkBtn">Check now</button>
+          <button id="randomBtn">Skip word</button>
+          <button id="clearBtn">Clear</button>
+        </div>
+
+        <div class="status" id="status">Waiting for input.</div>
+
+        <div class="cols">
+          <div class="mini">
+            <strong>Current streak</strong>
+            <div id="streakOut" class="muted" style="margin-top:8px">0</div>
+          </div>
+          <div class="mini">
+            <strong>Best streak</strong>
+            <div id="bestStreakOut" class="muted" style="margin-top:8px">0</div>
+          </div>
+          <div class="mini">
+            <strong>Attempts</strong>
+            <div id="attemptsOut" class="muted" style="margin-top:8px">0</div>
+          </div>
+        </div>
+
+        <div class="cols">
+          <div class="mini">
+            <strong>Initial</strong>
+            <div id="initialOut" class="muted" style="margin-top:8px">—</div>
+          </div>
+          <div class="mini">
+            <strong>Vowels / *</strong>
+            <div id="vowelOut" class="muted" style="margin-top:8px">—</div>
+          </div>
+          <div class="mini">
+            <strong>Final</strong>
+            <div id="finalOut" class="muted" style="margin-top:8px">—</div>
+          </div>
+        </div>
+
+        <div class="mini" style="margin-top:14px">
+          <strong>Last 10 entered lessons</strong>
+          <ul id="historyList" class="history-list muted">
+            <li>No attempts yet.</li>
+          </ul>
+        </div>
+
+        <div class="mini" style="margin-top:14px">
+          <strong>How to use this with Plover + The Uni</strong>
+          <ul class="muted">
+            <li>Use this page to learn the structure of a stroke.</li>
+            <li>Use Plover for actual writing and dictionary output.</li>
+            <li>On a dedicated steno board, the same stroke is pressed as one chord.</li>
+          </ul>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('board');
+    const ctx = canvas.getContext('2d');
+    const outlineInput = document.getElementById('outline');
+    const statusEl = document.getElementById('status');
+    const initialOut = document.getElementById('initialOut');
+    const vowelOut = document.getElementById('vowelOut');
+    const finalOut = document.getElementById('finalOut');
+    const streakOut = document.getElementById('streakOut');
+    const bestStreakOut = document.getElementById('bestStreakOut');
+    const attemptsOut = document.getElementById('attemptsOut');
+    const historyListEl = document.getElementById('historyList');
+
+    const lessons = [
+      { prompt: 'Build a stroke with initial S, vowel A, final -T.', target: 'SAT', hint: 'Think of a simple CVC shape: left + vowel + right.' },
+      { prompt: 'Build a stroke with initial T, vowels AE, final -P.', target: 'TAEP', hint: 'AE is a vowel cluster in the center.' },
+      { prompt: 'Build a stroke with initial H, vowel E, final -L.', target: 'HEL', hint: 'Start left, then center, then right.' },
+      { prompt: 'Build a stroke with initial K, vowel O, final -T.', target: 'KOT', hint: 'Do not think alphabetically. Think keyboard zones.' },
+      { prompt: 'Build a stroke with initial R, vowel U, final -P.', target: 'RUP', hint: 'One stroke can include onset + nucleus + coda.' },
+      { prompt: 'Build a stroke with initials ST, vowel A, final -R.', target: 'STAR', hint: 'You can press multiple initials in one stroke.' },
+      { prompt: 'Build a stroke with initial P, vowels AO, final -L.', target: 'PAOL', hint: 'AO is another center cluster.' },
+      { prompt: 'Build a stroke with initial W, vowel E, final -B.', target: 'WEB', hint: 'Final consonants live on the right side.' }
+    ];
+
+    let currentLesson = null;
+    let currentStreak = 0;
+    let bestStreak = 0;
+    let attempts = 0;
+    let awaitingNext = false;
+    let historyEntries = [];
+
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      return audioCtx;
+    }
+
+    function playFeedbackTone(correct) {
+      const ctx = getAudioContext();
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = 'sine';
+
+      // High pitch for correct, low pitch for incorrect.
+      osc.frequency.value = correct ? 880 : 180;
+
+      const now = ctx.currentTime;
+
+      // Smooth 1-second envelope to avoid clicks.
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(0.18, now + 0.03);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.0);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(now);
+      osc.stop(now + 1.0);
+    }
+
+    const keyRects = [
+      { id: 'S-', label: 'S', x: 60, y: 70, w: 56, h: 76 },
+      { id: 'T-', label: 'T', x: 124, y: 52, w: 56, h: 94 },
+      { id: 'P-', label: 'P', x: 188, y: 52, w: 56, h: 94 },
+      { id: 'H-', label: 'H', x: 252, y: 52, w: 56, h: 94 },
+      { id: 'K-', label: 'K', x: 124, y: 156, w: 56, h: 78 },
+      { id: 'W-', label: 'W', x: 188, y: 156, w: 56, h: 78 },
+      { id: 'R-', label: 'R', x: 252, y: 156, w: 56, h: 78 },
+      { id: '*L', label: '*', x: 340, y: 104, w: 46, h: 58 },
+      { id: '*R', label: '*', x: 392, y: 104, w: 46, h: 58 },
+      { id: 'A', label: 'A', x: 286, y: 280, w: 60, h: 70 },
+      { id: 'O', label: 'O', x: 352, y: 280, w: 60, h: 70 },
+      { id: 'E', label: 'E', x: 438, y: 280, w: 60, h: 70 },
+      { id: 'U', label: 'U', x: 504, y: 280, w: 60, h: 70 },
+      { id: '-F', label: 'F', x: 470, y: 52, w: 56, h: 94 },
+      { id: '-P', label: 'P', x: 534, y: 52, w: 56, h: 94 },
+      { id: '-L', label: 'L', x: 598, y: 52, w: 56, h: 94 },
+      { id: '-T', label: 'T', x: 662, y: 52, w: 56, h: 94 },
+      { id: '-D', label: 'D', x: 726, y: 70, w: 56, h: 76 },
+      { id: '-R', label: 'R', x: 470, y: 156, w: 56, h: 78 },
+      { id: '-B', label: 'B', x: 534, y: 156, w: 56, h: 78 },
+      { id: '-G', label: 'G', x: 598, y: 156, w: 56, h: 78 },
+      { id: '-S', label: 'S', x: 662, y: 156, w: 56, h: 78 },
+      { id: '-Z', label: 'Z', x: 726, y: 156, w: 56, h: 78 },
+    ];
+
+    function drawRoundedRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.closePath();
+    }
+
+    function drawBoard(activeIds = new Set()) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      const g = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      g.addColorStop(0, '#ffffff');
+      g.addColorStop(1, '#f8fafc');
+      ctx.fillStyle = g;
+      drawRoundedRect(0, 0, canvas.width, canvas.height, 18);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(37, 99, 235, 0.05)';
+      ctx.beginPath();
+      ctx.arc(170, 320, 110, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(720, 310, 100, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#334155';
+      ctx.font = '600 20px system-ui, sans-serif';
+      ctx.fillText('Initial consonants', 76, 28);
+      ctx.fillText('Final consonants', 560, 28);
+      ctx.fillText('Vowels', 366, 262);
+
+      for (const key of keyRects) {
+        const active = activeIds.has(key.id);
+        ctx.fillStyle = active ? '#2563eb' : '#e2e8f0';
+        ctx.strokeStyle = active ? '#93c5fd' : '#94a3b8';
+        ctx.lineWidth = active ? 3 : 2;
+        drawRoundedRect(key.x, key.y, key.w, key.h, 14);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = active ? '#ffffff' : '#0f172a';
+        ctx.font = '700 28px system-ui, sans-serif';
+        const tw = ctx.measureText(key.label).width;
+        ctx.fillText(key.label, key.x + key.w / 2 - tw / 2, key.y + key.h / 2 + 10);
+      }
+
+      ctx.fillStyle = '#64748b';
+      ctx.font = '16px ui-monospace, monospace';
+      ctx.fillText('Think in zones: left → center → right', 286, 390);
+    }
+
+    function normalizeOutline(raw) {
+      return raw.toUpperCase().replace(/\s+/g, '').replace(/\//g, '');
+    }
+
+    function parseOutline(outline) {
+      const s = normalizeOutline(outline);
+      const initial = [];
+      const vowels = [];
+      const finals = [];
+      const active = new Set();
+
+      const initialsSet = new Set(['S','T','K','P','W','H','R']);
+      const vowelsSet = new Set(['A','O','*','E','U']);
+      const finalsSet = new Set(['F','R','P','B','L','G','T','S','D','Z']);
+
+      let stage = 'initial';
+
+      for (const ch of s) {
+        if (ch === '-') {
+          stage = 'final';
+          continue;
+        }
+
+        if (vowelsSet.has(ch)) {
+          vowels.push(ch);
+          if (ch === '*') {
+            active.add('*L');
+            active.add('*R');
+          } else {
+            active.add(ch);
+          }
+          if (stage !== 'final') stage = 'vowel';
+          continue;
+        }
+
+        if (stage === 'initial' && initialsSet.has(ch)) {
+          initial.push(ch);
+          active.add(ch + '-');
+          continue;
+        }
+
+        if (finalsSet.has(ch)) {
+          finals.push(ch);
+          active.add('-' + ch);
+          stage = 'final';
+          continue;
+        }
+      }
+
+      return { initial, vowels, finals, active, normalized: s };
+    }
+
+    function formatOutlineForDisplay(outline) {
+      const parsed = parseOutline(outline);
+      return [
+        parsed.initial.join(''),
+        parsed.vowels.join(''),
+        parsed.finals.map(ch => '-' + ch).join('')
+      ].join('');
+    }
+
+    function updateDisplay() {
+      const parsed = parseOutline(outlineInput.value);
+      drawBoard(parsed.active);
+      initialOut.textContent = parsed.initial.join(' ') || '—';
+      vowelOut.textContent = parsed.vowels.join(' ') || '—';
+      finalOut.textContent = parsed.finals.join(' ') || '—';
+      return parsed;
+    }
+
+    function setStatus(html) {
+      statusEl.innerHTML = html;
+    }
+
+    function updateStats() {
+      streakOut.textContent = String(currentStreak);
+      bestStreakOut.textContent = String(bestStreak);
+      attemptsOut.textContent = String(attempts);
+    }
+
+    function focusOutline() {
+      requestAnimationFrame(() => outlineInput.focus());
+    }
+
+    function setBackgroundState(kind = 'neutral') {
+      document.body.classList.remove('state-correct', 'state-wrong');
+      if (kind === 'correct') document.body.classList.add('state-correct');
+      if (kind === 'wrong') document.body.classList.add('state-wrong');
+    }
+
+    function renderHistory() {
+      if (!historyEntries.length) {
+        historyListEl.innerHTML = '<li>No attempts yet.</li>';
+        return;
+      }
+
+      historyListEl.innerHTML = historyEntries.map((entry) => `
+        <li class="history-item">
+          <span class="history-badge ${entry.correct ? 'ok' : 'bad'}">${entry.correct ? 'OK' : 'X'}</span>
+          <div class="history-main">
+            <div><strong><code>${formatOutlineForDisplay(entry.target)}</code></strong></div>
+            <div class="muted">You: <code>${formatOutlineForDisplay(entry.guess)}</code></div>
+          </div>
+        </li>
+      `).join('');
+    }
+
+    function addHistoryEntry({ guess, target, correct }) {
+      historyEntries.unshift({ guess, target, correct });
+      historyEntries = historyEntries.slice(0, 10);
+      renderHistory();
+    }
+
+    function randomLesson(customStatus = 'New word loaded. Start typing.') {
+      currentLesson = lessons[Math.floor(Math.random() * lessons.length)];
+      outlineInput.value = '';
+      outlineInput.placeholder = formatOutlineForDisplay(currentLesson.target);
+      updateDisplay();
+      setStatus(customStatus);
+      awaitingNext = false;
+      focusOutline();
+    }
+
+    function queueNextLesson() {
+      awaitingNext = true;
+      setTimeout(() => {
+        randomLesson('Next word ready.');
+      }, 650);
+    }
+
+    function checkLesson(force = false) {
+      const parsed = updateDisplay();
+      if (!currentLesson || awaitingNext) return;
+
+      if (!parsed.normalized) {
+        if (force) setStatus('<span class="warn">Enter an outline first.</span>');
+        return;
+      }
+
+      const guess = parsed.normalized.replace(/-/g, '');
+      const target = currentLesson.target.replace(/-/g, '');
+
+      if (!force && guess.length < target.length) {
+        return;
+      }
+
+      attempts += 1;
+
+      if (guess === target) {
+        playFeedbackTone(true);
+
+        currentStreak += 1;
+        bestStreak = Math.max(bestStreak, currentStreak);
+        updateStats();
+        addHistoryEntry({ guess: parsed.normalized, target: currentLesson.target, correct: true });
+        setStatus(`<span class="ok">Correct.</span> <code>${formatOutlineForDisplay(currentLesson.target)}</code> matched. Streak: <strong>${currentStreak}</strong>.`);
+        setBackgroundState('correct');
+      } else {
+        playFeedbackTone(false);
+
+        currentStreak = 0;
+        updateStats();
+        addHistoryEntry({ guess: parsed.normalized, target: currentLesson.target, correct: false });
+        setStatus(`<span class="bad">Incorrect.</span> You entered <code>${formatOutlineForDisplay(parsed.normalized)}</code>. Target: <code>${formatOutlineForDisplay(currentLesson.target)}</code>. Streak reset to <strong>0</strong>.`);
+        setBackgroundState('wrong');
+      }
+
+      queueNextLesson();
+    }
+
+    outlineInput.addEventListener('input', () => {
+      updateDisplay();
+      checkLesson(false);
+    });
+
+    outlineInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        checkLesson(true);
+      }
+    });
+
+    document.getElementById('checkBtn').addEventListener('click', () => checkLesson(true));
+
+    document.getElementById('randomBtn').addEventListener('click', () => {
+      currentStreak = 0;
+      updateStats();
+      randomLesson('Word skipped. Streak reset to 0.');
+    });
+
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      outlineInput.value = '';
+      updateDisplay();
+      setStatus('Cleared.');
+      focusOutline();
+    });
+
+    setBackgroundState('neutral');
+    drawBoard();
+    updateStats();
+    renderHistory();
+    randomLesson();
+    focusOutline();
+
+    window.addEventListener('pointerdown', focusOutline);
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) focusOutline();
+    });
+  </script>
+</body>
+</html>
