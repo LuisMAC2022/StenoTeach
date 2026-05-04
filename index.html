@@ -227,6 +227,16 @@
               <strong>Attempts</strong>
               <output id="attemptsOut" for="outline">0</output>
             </steno-stat>
+
+            <steno-stat>
+              <strong>Level</strong>
+              <output id="levelOut" for="outline">1</output>
+            </steno-stat>
+
+            <steno-stat>
+              <strong>Timer</strong>
+              <output id="timerOut" for="outline">—</output>
+            </steno-stat>
           </steno-stats>
 
           <steno-history-panel>
@@ -265,6 +275,8 @@
     const streakOut = document.getElementById('streakOut');
     const bestStreakOut = document.getElementById('bestStreakOut');
     const attemptsOut = document.getElementById('attemptsOut');
+    const levelOut = document.getElementById('levelOut');
+    const timerOut = document.getElementById('timerOut');
     const historyListEl = document.getElementById('historyList');
 
     const lessons = [
@@ -306,7 +318,11 @@
     let attempts = 0;
     let mistakeStreak = 0;
     let layoutHidden = false;
+    let difficultyLevel = 1;
+    let level2CorrectStreak = 0;
     let awaitingNext = false;
+    let level3TimerId = null;
+    let level3TimeLeft = 0;
     let historyEntries = [];
     let audioCtx = null;
     let audioUnlocked = false;
@@ -485,6 +501,10 @@
       bestStreakOut.textContent = String(bestStreak);
       attemptsOut.value = String(attempts);
       attemptsOut.textContent = String(attempts);
+      levelOut.value = String(difficultyLevel);
+      levelOut.textContent = String(difficultyLevel);
+      timerOut.value = difficultyLevel === 3 ? String(level3TimeLeft) : '—';
+      timerOut.textContent = difficultyLevel === 3 ? `${level3TimeLeft}s` : '—';
     }
 
     function focusOutline() {
@@ -526,6 +546,7 @@
       outlineInput.placeholder = formatOutlineForDisplay(currentLesson.target);
       updateDisplay();
       awaitingNext = false;
+      restartLevel3TimerIfNeeded();
       focusOutline();
     }
 
@@ -608,6 +629,56 @@
       osc.stop(now + 1);
     }
 
+    function setDifficultyLevel(nextLevel) {
+      difficultyLevel = nextLevel;
+      if (difficultyLevel !== 3) {
+        clearLevel3Timer();
+      }
+      updateStats();
+    }
+
+    function clearLevel3Timer() {
+      if (level3TimerId) {
+        clearInterval(level3TimerId);
+        level3TimerId = null;
+      }
+      level3TimeLeft = 0;
+    }
+
+    function restartLevel3TimerIfNeeded() {
+      if (difficultyLevel !== 3 || awaitingNext) return;
+      clearLevel3Timer();
+      level3TimeLeft = 5;
+      updateStats();
+      level3TimerId = setInterval(() => {
+        level3TimeLeft -= 1;
+        updateStats();
+        if (level3TimeLeft <= 0) {
+          clearLevel3Timer();
+          handleTimeoutAsMistake();
+        }
+      }, 1000);
+    }
+
+    function handleTimeoutAsMistake() {
+      if (!currentLesson || awaitingNext || difficultyLevel !== 3) return;
+
+      attempts += 1;
+      currentStreak = 0;
+      mistakeStreak += 1;
+      level2CorrectStreak = 0;
+
+      if (mistakeStreak >= 3) {
+        setDifficultyLevel(2);
+      }
+
+      updateStats();
+      addHistoryEntry({ guess: '', target: currentLesson.target, correct: false });
+      setBackgroundState('wrong');
+      playTone('wrong');
+      queueNextLesson();
+    }
+
     function checkLesson(force = false) {
       const parsed = updateDisplay();
       if (!currentLesson || awaitingNext) return;
@@ -624,12 +695,25 @@
       }
 
       attempts += 1;
+      if (difficultyLevel === 3) clearLevel3Timer();
 
       if (guess === target) {
         currentStreak += 1;
         mistakeStreak = 0;
         bestStreak = Math.max(bestStreak, currentStreak);
-        if (currentStreak >= 10) setLayoutVisibility(false);
+
+        if (difficultyLevel === 1 && currentStreak >= 10) {
+          setLayoutVisibility(false);
+          setDifficultyLevel(2);
+          level2CorrectStreak = 0;
+        } else if (difficultyLevel === 2) {
+          level2CorrectStreak += 1;
+          if (level2CorrectStreak >= 10) {
+            setDifficultyLevel(3);
+            level2CorrectStreak = 0;
+          }
+        }
+
         updateStats();
         addHistoryEntry({ guess: parsed.normalized, target: currentLesson.target, correct: true });
         setBackgroundState('correct');
@@ -637,7 +721,15 @@
       } else {
         currentStreak = 0;
         mistakeStreak += 1;
-        if (mistakeStreak >= 3) setLayoutVisibility(true);
+        level2CorrectStreak = 0;
+
+        if (difficultyLevel === 2 && mistakeStreak >= 3) {
+          setLayoutVisibility(true);
+          setDifficultyLevel(1);
+        } else if (difficultyLevel === 3 && mistakeStreak >= 3) {
+          setDifficultyLevel(2);
+        }
+
         updateStats();
         addHistoryEntry({ guess: parsed.normalized, target: currentLesson.target, correct: false });
         setBackgroundState('wrong');
