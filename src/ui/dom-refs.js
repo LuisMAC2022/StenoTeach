@@ -6,6 +6,8 @@ export function getDomRefs() {
     streakOut: document.getElementById('streakOut'),
     bestStreakOut: document.getElementById('bestStreakOut'),
     attemptsOut: document.getElementById('attemptsOut'),
+    accuracyOut: document.getElementById('accuracyOut'),
+    avgStreakOut: document.getElementById('avgStreakOut'),
     levelOut: document.getElementById('levelOut'),
     timerOut: document.getElementById('timerOut'),
     historyListEl: document.getElementById('historyList')
