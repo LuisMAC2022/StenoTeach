@@ -15,6 +15,7 @@ export function wireEvents(refs, initialState) {
 
   function render() {
     const stats = selectStats(state); const view = selectView(state);
+    refs.outlineInput.value = state.outlineValue;
     refs.outlineInput.placeholder = view.placeholder;
     refs.canvas.classList.toggle('layout-hidden', !view.layoutVisible);
     refs.canvas.toggleAttribute('hidden', !view.layoutVisible);
