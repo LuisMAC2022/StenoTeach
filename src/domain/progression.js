@@ -2,6 +2,7 @@ export function evaluateProgression(state, correct) {
   const next = { ...state };
   if (correct) {
     next.currentStreak += 1;
+    next.correctAttempts += 1;
     next.mistakeStreak = 0;
     next.bestStreak = Math.max(next.bestStreak, next.currentStreak);
     if (next.difficultyLevel === 1 && next.currentStreak >= 10) {
@@ -13,6 +14,10 @@ export function evaluateProgression(state, correct) {
       if (next.level2CorrectStreak >= 10) { next.difficultyLevel = 3; next.level2CorrectStreak = 0; }
     }
   } else {
+    if (next.currentStreak > 0) {
+      next.completedStreaks += 1;
+      next.sumCompletedStreaks += next.currentStreak;
+    }
     next.currentStreak = 0;
     next.mistakeStreak += 1;
     next.level2CorrectStreak = 0;
