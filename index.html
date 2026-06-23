@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Steno Canvas Trainer</title>
+  <title>Steno Synthesizer</title>
   <link rel="stylesheet" href="src/styles/tokens.css" />
   <link rel="stylesheet" href="src/styles/layout.css" />
   <link rel="stylesheet" href="src/styles/components.css" />
@@ -11,25 +11,61 @@
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
-  <header class="site"><h1>Steno Canvas Trainer</h1></header>
+
+  <header class="site page-header">
+    <h1>Steno Synthesizer</h1>
+    <p class="lede">A tiny proof-of-concept synth for Plover and a Uni steno keyboard.</p>
+  </header>
+
   <main id="main-content" class="site">
-    <section class="workspace" aria-label="Practice workspace">
-      <article class="panel">
-        <label for="outline">Enter a steno outline</label>
-        <input id="outline" type="text" placeholder="Type the shown outline" autocomplete="off" spellcheck="false" />
-        <canvas id="board" width="900" height="430" aria-label="Steno keyboard diagram"></canvas>
+    <section class="workspace" aria-labelledby="synth-heading">
+      <article class="panel synth-panel">
+        <h2 id="synth-heading">Play notes from Plover output</h2>
+        <p>
+          Press <strong>Start audio</strong>, focus the input, then use Plover to write note letters.
+          This demo plays <kbd>C</kbd>, <kbd>D</kbd>, <kbd>E</kbd>, <kbd>F</kbd>, <kbd>G</kbd>, <kbd>A</kbd>, and <kbd>B</kbd>.
+        </p>
+
+        <button id="startAudio" type="button">Start audio</button>
+
+        <label for="ploverInput">Plover note input</label>
+        <input
+          id="ploverInput"
+          type="text"
+          inputmode="text"
+          autocomplete="off"
+          autocapitalize="characters"
+          spellcheck="false"
+          aria-describedby="inputHelp"
+          placeholder="Use Plover to type notes, for example: E E F G"
+        />
+        <p id="inputHelp" class="muted">
+          Spaces and punctuation are ignored. Use <kbd>R</kbd> for a rest.
+        </p>
+
+        <p id="status" class="status" role="status" aria-live="polite">Audio is not started yet.</p>
       </article>
-      <aside class="panel" aria-label="Progress and history">
-        <section class="stats" aria-label="Statistics">
-		<article class="stat"><strong>Current streak</strong><br><output id="streakOut" for="outline">-</output></br></article>
-		<article class="stat"><strong>Best streak</strong><br><output id="bestStreakOut" for="outline">-</output></br></article>
-		<article class="stat"><strong>Attempts</strong><br><output id="attemptsOut" for="outline">-</output></br></article>
-		<article class="stat"><strong>Accuracy (%)</strong><br><output id="accuracyOut" for="outline"> -%</output></br></article>
-		<article class="stat"><strong>Average streak</strong><br><output id="avgStreakOut" for="outline"> -</output></br></article>
-		<article class="stat"><strong>Level</strong><br><output id="levelOut" for="outline"> 1</output></br></article>
-		<article class="stat"><strong>Timer</strong><br><output id="timerOut" for="outline"> —</output></br></article>
-        </section>
-        <section class="history-panel"><strong>Last 10 entered lessons</strong><ul id="historyList" class="history-list muted"><li>No attempts yet.</li></ul></section>
+
+      <aside class="panel" aria-labelledby="instructions-heading">
+        <h2 id="instructions-heading">Play “Ode to Joy”</h2>
+        <p>Make Plover output the following note letters, one stroke at a time:</p>
+        <ol class="song-steps">
+          <li><kbd>E</kbd> <kbd>E</kbd> <kbd>F</kbd> <kbd>G</kbd></li>
+          <li><kbd>G</kbd> <kbd>F</kbd> <kbd>E</kbd> <kbd>D</kbd></li>
+          <li><kbd>C</kbd> <kbd>C</kbd> <kbd>D</kbd> <kbd>E</kbd></li>
+          <li><kbd>E</kbd> <kbd>D</kbd> <kbd>D</kbd></li>
+        </ol>
+
+        <h3>Suggested Plover dictionary</h3>
+        <p class="muted">Add simple entries like these to your Plover dictionary for the proof of concept:</p>
+        <pre><code>"STKPWHR": "C",
+"TK": "D",
+"TP": "E",
+"TPH": "F",
+"TKPW": "G",
+"A": "A",
+"PW": "B",
+"R": "R"</code></pre>
       </aside>
     </section>
   </main>
